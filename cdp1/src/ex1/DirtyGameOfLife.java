@@ -59,14 +59,17 @@ public class DirtyGameOfLife implements GameOfLife {
 		public void run() {
 			while (_gens > 0) {
 				WorldSection section = null;
-				synchronized (DirtyGameOfLife.this) {
-					if (_worldSections.size() > 0) {
-						section = _worldSections.removeFirst();
+				while (true) {
+					synchronized (DirtyGameOfLife.this) {
+						if (_worldSections.size() > 0) {
+							section = _worldSections.removeFirst();
+						} else {
+							break;
+						}
 						processSection(section);
 					}
 				}
 				_gens--;
-				
 			}
 		}
 		
