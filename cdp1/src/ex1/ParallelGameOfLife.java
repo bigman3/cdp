@@ -2,17 +2,19 @@ package ex1;
 
 public class ParallelGameOfLife implements GameOfLife {
 
+	private GameOfLife _gol = new DirtyGameOfLife();
+	
 	public boolean[][][] invoke(boolean[][] initalField, int hSplit, int vSplit,
 			int generations) {
-		boolean[][][] x = new boolean[2][][];	
+		return _gol.invoke(initalField, hSplit, vSplit, generations);
+/*		boolean[][][] x = new boolean[2][][];	
 		boolean[][] copy1 = deepCopy(initalField);
 		boolean[][] copy2 = deepCopy(initalField);
 		WorkerMain last = new WorkerMain(copy1, hSplit, vSplit, generations);
 		x[1] = last.getResult();
 		WorkerMain preLast = new WorkerMain(copy2, hSplit, vSplit, generations-1);
 		x[0] = preLast.getResult();
-		return x;
-		// TODO Auto-generated method stub
+		return x;*/
 	}
 	
 	private boolean[][] deepCopy(boolean[][] src){
