@@ -3,6 +3,7 @@ package ex1;
 import java.awt.Point;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 public class DirtyGameOfLife implements GameOfLife {
 
@@ -12,6 +13,7 @@ public class DirtyGameOfLife implements GameOfLife {
 	private Semaphore _workerSem = new Semaphore(0);
 	private Semaphore _genSem = new Semaphore(0);
 	private volatile int _generations;
+	private static final boolean debug = (System.getenv("DEBUG") != null);
 	
 	@Override
 	public boolean[][][] invoke(boolean[][] initalField, int hSplit, int vSplit, int generations) {
@@ -21,18 +23,13 @@ public class DirtyGameOfLife implements GameOfLife {
 		for (int i=0; i<initalField.length; i++) {
 			_currWorld[i] = new boolean[initalField[i].length];
 			_nextWorld[i] = new boolean[initalField[i].length];
-			System.arraycopy(initalField[i], 0, _currWorld[i], 0, initalField[i].length);
 		}
 		
-		int width  = initalField[0].length / hSplit;
-		int height = initalField.length / vSplit;
+		int width  = initalField[0].length / vSplit;
+		int height = initalField.length / hSplit;
 		
 		// split the world map to WorldSections
-		for (int i=0; i<hSplit; i++) {
-			for (int j=0; j<vSplit; j++) {
-				_worldSections.add(new WorldSection());
-			}
-		}
+		_worldSections = splitToSections(hSplit, vSplit, width, height);
 		
 		// launch all threads
 		for (int i=0; i<_worldSections.size(); i++) {
@@ -42,7 +39,6 @@ public class DirtyGameOfLife implements GameOfLife {
 		while (_generations > 0) {
 			// wait for workers to finish
 			_workerSem.acquire(_worldSections.size());
-			
 			// switch _currWorld and _nextWorld
 			boolean[][] tmp = _currWorld;
 			_currWorld = _nextWorld;
@@ -58,6 +54,33 @@ public class DirtyGameOfLife implements GameOfLife {
 		
 		return new boolean[][][]{_nextWorld,_currWorld};
 	}
+
+	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, int width, int height) {
+		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
+		dbg("width: " + width + ", height: " + height + ", vSplit: " + vSplit + ", hSplit: " + hSplit);
+		for (int i=0; i<hSplit; i++) {
+			for (int j=0; j<vSplit; j++) {
+				WorldSection section = new WorldSection();
+				for (int l=0; l<height; l++) {
+					for (int k=0; k<width; k++) {
+						Cell cell = new Cell();
+						cell.y = i * height + l;
+						cell.x = j*width + k;
+						section.cells.add(cell);
+					}
+				}
+				sections.add(section);
+			}
+		}
+		for (WorldSection section : sections) {
+			System.out.print("[");
+			for (Cell cell : section.cells) {
+				System.out.print("(" + cell.x + "," + cell.y + ") ");
+			}
+			System.out.println("]");
+		}
+		return sections;
+	}
 	
 	private class Worker implements Runnable {
 
@@ -69,33 +92,51 @@ public class DirtyGameOfLife implements GameOfLife {
 		
 		@Override
 		public void run() {
-			while (_generations > 0) {
-				WorldSection section = null;
-				while (true) {
-					synchronized (DirtyGameOfLife.this) {
-						if (_worldSections.size() > 0) {
-							section = _worldSections.removeFirst();
-						} else {
-							break;
+			dbg("Started");
+			try {
+				while (_generations > 0) {
+					WorldSection section = null;
+					while (true) {
+						synchronized (DirtyGameOfLife.this) {
+							if (_worldSections.size() > 0) {
+								section = _worldSections.removeFirst();
+							} else {
+								break;
+							}
+							processSection(section);
 						}
-						processSection(section);
 					}
+					_workerSem.release(1);
+					_genSem.acquire(1);
 				}
 				_workerSem.release(1);
-				_genSem.acquire(1);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-			
-			_workerSem.release(1);
 		}
 		
 		private void processSection(WorldSection section) {
-			
+			for (Cell cell : section.cells) {
+				int numNeighbors = numNeighbors(cell.x, cell.y,_currWorld);
+				if (_currWorld[cell.x][cell.y]) { // alive
+					if (numNeighbors == 3 || numNeighbors == 2) {
+						_nextWorld[cell.x][cell.y] = true;
+					} else {
+						_nextWorld[cell.x][cell.y] = false;
+					}
+				} else { // dead
+					if (numNeighbors == 3) {
+						_nextWorld[cell.x][cell.y] = true;
+					} else {
+						_nextWorld[cell.x][cell.y] = false;
+					}
+				}
+			}
 		}
 	}
 
 	private static class WorldSection {
-		private List<Cell> outer = new LinkedList<Cell>();
-		private List<Cell> inner = new LinkedList<Cell>();
+		private List<Cell> cells = new LinkedList<Cell>();
 	}
 	
 	private static class Cell extends Point {
@@ -119,19 +160,23 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 		
 		void acquire(int permits) {
+			dbg("Entering acquire(" + permits + ")");
 			synchronized (this) {
 				while (_permits == 0) {
 					vait(this);
 				}
 				_permits -= permits;
 			}
+			dbg("Exiting");
 		}
 		
 		void release(int permits) {
+			dbg("Entering release(" + permits + ")");
 			synchronized (this) {
 				_permits += permits;
 				notifyAll();
 			}
+			dbg("Exiting");
 		}
 	}
 	
@@ -140,6 +185,13 @@ public class DirtyGameOfLife implements GameOfLife {
 			o.wait();
 		} catch (InterruptedException e) {
 		}
+	}
+	
+	private static void dbg(String msg) {
+		if (! debug) {
+			return;
+		}
+		System.out.println(Thread.currentThread().getId() + ": " + msg);
 	}
 
 }
