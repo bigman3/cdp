@@ -23,6 +23,11 @@ public class DirtyGameOfLife implements GameOfLife {
 			_currWorld[i] = new boolean[initalField[i].length];
 			_nextWorld[i] = new boolean[initalField[i].length];
 		}
+		
+		for (int i=0; i<initalField.length; i++) {
+			System.arraycopy(initalField[i],0,_currWorld[i],0,initalField[i].length);
+		}
+		
 		print_board(initalField);
 
 		int width = initalField[0].length / vSplit;
