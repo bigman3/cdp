@@ -30,7 +30,7 @@ public class DirtyGameOfLife implements GameOfLife {
 
 		// split the world map to WorldSections
 		_worldSections = splitToSections(hSplit, vSplit, width, height);
-		
+
 		int workerNum = _worldSections.size();
 
 		// launch all threads
@@ -96,18 +96,15 @@ public class DirtyGameOfLife implements GameOfLife {
 				while (_generations > 0) {
 					WorldSection section = null;
 					synchronized (DirtyGameOfLife.this) {
-						if (_worldSections.size() > 0) {
-							section = _worldSections.removeFirst();
-						}
+						section = _worldSections.removeFirst();
 					}
-					
+
 					processSection(section);
-					
-					
+
 					synchronized (DirtyGameOfLife.this) {
 						_worldSections.addLast(section);
 					}
-					
+
 					_workerSem.release(1);
 					_genSem.acquire(1);
 				}
@@ -143,7 +140,9 @@ public class DirtyGameOfLife implements GameOfLife {
 	}
 
 	private static class Cell extends Point {
-		public String toString() { return "(" + y + "," + x + ")"; }
+		public String toString() {
+			return "(" + y + "," + x + ")";
+		}
 	}
 
 	private static int numNeighbors(int x, int y, boolean[][] field) {
@@ -166,7 +165,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		void acquire(int permits) {
 			dbg("Entering acquire(" + permits + ")");
 			synchronized (this) {
-				while (_permits < permits ) {
+				while (_permits < permits) {
 					vait(this);
 				}
 				_permits -= permits;
