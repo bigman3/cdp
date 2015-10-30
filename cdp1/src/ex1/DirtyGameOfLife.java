@@ -23,15 +23,21 @@ public class DirtyGameOfLife implements GameOfLife {
 			_currWorld[i] = new boolean[initalField[i].length];
 			_nextWorld[i] = new boolean[initalField[i].length];
 		}
-		
-		for (int i=0; i<initalField.length; i++) {
-			System.arraycopy(initalField[i],0,_currWorld[i],0,initalField[i].length);
+
+		for (int i = 0; i < initalField.length; i++) {
+			System.arraycopy(initalField[i], 0, _currWorld[i], 0, initalField[i].length);
 		}
-		
+
 		print_board(initalField);
 
 		// split the world map to WorldSections
-		_worldSections = splitToSections(hSplit, vSplit,initalField);
+		_worldSections = splitToSections(hSplit, vSplit, initalField);
+
+		// backup _worldSections
+		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
+		for (WorldSection section : _worldSections) {
+			sections.add(section);
+		}
 
 		int workerNum = _worldSections.size();
 
@@ -50,6 +56,9 @@ public class DirtyGameOfLife implements GameOfLife {
 			_currWorld = _nextWorld;
 			_nextWorld = tmp;
 
+			// restore sections
+			_worldSections.addAll(sections);
+
 			// advance gen and signal workers to advance to next gen
 			_generations--;
 			_genSem.release(workerNum);
@@ -60,10 +69,10 @@ public class DirtyGameOfLife implements GameOfLife {
 		return new boolean[][][] { _nextWorld, _currWorld };
 	}
 
-	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit,boolean[][] initialField) {
+	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, boolean[][] initialField) {
 		int width = initialField[0].length / vSplit;
 		int height = initialField.length / hSplit;
-		Integer dbgBoard[][] = new Integer[vSplit*width][hSplit*height];
+		Integer dbgBoard[][] = new Integer[vSplit * width][hSplit * height];
 
 		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
 		dbg("width: " + width + ", height: " + height + ", vSplit: " + vSplit + ", hSplit: " + hSplit);
@@ -92,15 +101,13 @@ public class DirtyGameOfLife implements GameOfLife {
 			System.out.println("]");
 		}
 
-
-		for (int x=0; x<vSplit*width ; x++) {
-			for (int y=0; y<hSplit*height; y++) {
+		for (int x = 0; x < vSplit * width; x++) {
+			for (int y = 0; y < hSplit * height; y++) {
 
 				System.out.print(dbgBoard[x][y] + ", ");
 			}
 			System.out.println();
 		}
-
 
 		return sections;
 	}
@@ -116,17 +123,17 @@ public class DirtyGameOfLife implements GameOfLife {
 			dbg("Started");
 			try {
 				while (_generations > 0) {
-					WorldSection section = null;
-					synchronized (DirtyGameOfLife.this) {
-						section = _worldSections.removeFirst();
+					while (true) {
+						WorldSection section = null;
+						synchronized (_worldSections) {
+							if (_worldSections.size() > 0) {
+								section = _worldSections.removeFirst();
+							} else {
+								break;
+							}
+						}
+						processSection(section);
 					}
-
-					processSection(section);
-
-					synchronized (DirtyGameOfLife.this) {
-						_worldSections.addLast(section);
-					}
-
 					_workerSem.release(1);
 					_genSem.acquire(1);
 				}
@@ -161,6 +168,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		private List<Cell> cells = new LinkedList<Cell>();
 	}
 
+	@SuppressWarnings("serial")
 	private static class Cell extends Point {
 		public String toString() {
 			return "(" + y + "," + x + ")";
@@ -185,23 +193,23 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 
 		void acquire(int permits) {
-			dbg("Entering acquire(" + permits + ")");
+			//dbg("Entering acquire(" + permits + ")");
 			synchronized (this) {
 				while (_permits < permits) {
 					vait(this);
 				}
 				_permits -= permits;
 			}
-			dbg("Exiting");
+			//dbg("Exiting");
 		}
 
 		void release(int permits) {
-			dbg("Entering release(" + permits + ")");
+			//dbg("Entering release(" + permits + ")");
 			synchronized (this) {
 				_permits += permits;
 				notifyAll();
 			}
-			dbg("Exiting");
+			//dbg("Exiting");
 		}
 	}
 
@@ -219,14 +227,14 @@ public class DirtyGameOfLife implements GameOfLife {
 		System.out.println(Thread.currentThread().getId() + ": " + msg);
 	}
 
-	private static void print_board(boolean w_gameBoard[][]){
+	private static void print_board(boolean w_gameBoard[][]) {
 		System.out.print("  ");
 		for (int i = 0; i < w_gameBoard.length; i++) {
-			System.out.print(i%10);
+			System.out.print(i % 10);
 		}
 		for (int i = 0; i < w_gameBoard.length; i++) {
 			System.out.print("\n");
-			System.out.print(i%10 + ":");
+			System.out.print(i % 10 + ":");
 			for (int j = 0; j < w_gameBoard[0].length; j++) {
 				char val = (w_gameBoard[i][j]) ? 'X' : '-';
 				System.out.print(val + " ");
