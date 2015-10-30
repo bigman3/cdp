@@ -23,6 +23,7 @@ public class DirtyGameOfLife implements GameOfLife {
 			_currWorld[i] = new boolean[initalField[i].length];
 			_nextWorld[i] = new boolean[initalField[i].length];
 		}
+		print_board(initalField);
 
 		int width = initalField[0].length / vSplit;
 		int height = initalField.length / hSplit;
@@ -41,6 +42,8 @@ public class DirtyGameOfLife implements GameOfLife {
 			// wait for workers to finish
 			_workerSem.acquire(workerNum);
 			// switch _currWorld and _nextWorld
+
+			print_board(_currWorld);
 			boolean[][] tmp = _currWorld;
 			_currWorld = _nextWorld;
 			_nextWorld = tmp;
@@ -211,6 +214,22 @@ public class DirtyGameOfLife implements GameOfLife {
 			return;
 		}
 		System.out.println(Thread.currentThread().getId() + ": " + msg);
+	}
+
+	private static void print_board(boolean w_gameBoard[][]){
+		System.out.print("  ");
+		for (int i = 0; i < w_gameBoard.length; i++) {
+			System.out.print(i%10);
+		}
+		for (int i = 0; i < w_gameBoard.length; i++) {
+			System.out.print("\n");
+			System.out.print(i%10 + ":");
+			for (int j = 0; j < w_gameBoard[0].length; j++) {
+				char val = (w_gameBoard[i][j]) ? 'X' : '-';
+				System.out.print(val + " ");
+			}
+		}
+		System.out.print("\n\n ---------------------------------- \n\n");
 	}
 
 }
