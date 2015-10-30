@@ -3,7 +3,6 @@ package ex1;
 import java.awt.Point;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 public class DirtyGameOfLife implements GameOfLife {
 
@@ -135,17 +134,17 @@ public class DirtyGameOfLife implements GameOfLife {
 			dbg("Processing " + section.cells);
 			for (Cell cell : section.cells) {
 				int numNeighbors = numNeighbors(cell.x, cell.y, _currWorld);
-				if (_currWorld[cell.y][cell.x]) { // alive
+				if (_currWorld[cell.x][cell.y]) { // alive
 					if (numNeighbors == 3 || numNeighbors == 2) {
-						_nextWorld[cell.y][cell.x] = true;
+						_nextWorld[cell.x][cell.y] = true;
 					} else {
-						_nextWorld[cell.y][cell.x] = false;
+						_nextWorld[cell.x][cell.y] = false;
 					}
 				} else { // dead
 					if (numNeighbors == 3) {
-						_nextWorld[cell.y][cell.x] = true;
+						_nextWorld[cell.x][cell.y] = true;
 					} else {
-						_nextWorld[cell.y][cell.x] = false;
+						_nextWorld[cell.x][cell.y] = false;
 					}
 				}
 			}
