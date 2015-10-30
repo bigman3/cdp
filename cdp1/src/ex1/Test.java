@@ -4,16 +4,17 @@ package ex1;
 public class Test {
 
 	public static void main(String[] args) {
-		for (int row = 4; row < 100; row++) {
+		for (int row = 1; row < 100; row++) {
+			System.out.println(row);
 			for (int col = 1; col < 100; col++) {
 				boolean[][] field = new boolean[row][col];
 				for (int i = 1; i < row; i++) {
 					field[i] = new boolean[col];
 					for (int j = 1; j < col; j++) {
-						field[i][j] = (Math.random() > 0.5);
+						field[i][j] = (Math.random() > 0.25);
 					}
 				}
-				int nGenerations = 10;
+				int nGenerations = (int) (Math.random() * 10);
 				for (int hSplit = 1; hSplit < 10; hSplit++) {
 					for (int vSplit = 1; vSplit < 10; vSplit++) {
 						GameOfLife sGol = new SerialGameOfLife();
@@ -24,8 +25,8 @@ public class Test {
 						long serialTime = end - start;
 						boolean[][][] resultParallel;
 
-						System.out.println("Testing hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
-								+ ", cols: " + col);
+/*						System.out.println("Testing hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
+								+ ", cols: " + col);*/
 
 						start = System.currentTimeMillis();
 
@@ -44,16 +45,29 @@ public class Test {
 						boolean success = (compareArrays(resultParallel[0], resultSerial[0])
 								&& (compareArrays(resultParallel[1], resultSerial[1])));
 						if (!success) {
-							System.err.println("**SUCESSS! Failed, hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
-									+ ", cols: " + col);
+							System.out.println("serial: ");
+							for (int k=0; k<resultSerial[0].length; k++) {
+								for (int l=0; l<resultSerial[0][0].length; l++) {
+									System.out.print(resultSerial[0][k][l] ? "1 " : "0 ");
+								}
+								System.out.println();
+							}
+							System.out.println("parallel:");
+							for (int k=0; k<resultParallel[0].length; k++) {
+								for (int l=0; l<resultParallel[0][0].length; l++) {
+									System.out.print(resultParallel[0][k][l] ? "1 " : "0 ");
+								}
+								System.out.println();
+							}
+							
+/*							System.err.println("**SUCESSS! Failed, hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
+									+ ", cols: " + col);*/
 							return;
 						} else {
 							if (parallelTime != 0 && serialTime != 0) {
-								System.out.println("**SUCESSS! speedup: " + (serialTime / parallelTime) + " hSplit: " + hSplit
-										+ ", vSplit: " + vSplit + ", rows: " + row + ", cols: " + col);
+/*								System.out.println("**SUCESSS! speedup: " + (serialTime / parallelTime) + " hSplit: " + hSplit
+										+ ", vSplit: " + vSplit + ", rows: " + row + ", cols: " + col);*/
 							}
-							int threadNum = Thread.getAllStackTraces().size();
-							System.out.println("Thread num: " + threadNum);
 						}
 					}
 				}
@@ -61,13 +75,6 @@ public class Test {
 		}
 	}
 	
-	private static void sleep() {
-		try {
-			Thread.sleep(500);
-		} catch (InterruptedException e) {
-		}
-	}
-
 	public static boolean compareArrays(boolean[][] arr1, boolean[][] arr2) {
 		if (arr1 == null || arr2 == null) {
 			return false;

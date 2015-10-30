@@ -36,13 +36,25 @@ public class DirtyGameOfLife implements GameOfLife {
 		for (int i = 0; i < workerNum; i++) {
 			workers[i] = new Worker();
 		}
+		
+		System.out.println("Starting main loop");
 
 		while (_generations > 0) {
 			// wait for workers to finish
 			_workerSem.acquire(workerNum);
 			// switch _currWorld and _nextWorld
 
-//			print_board(_currWorld);
+			
+			for (int k=0; k<_currWorld.length; k++) {
+				for (int l=0; l<_currWorld[0].length; l++) {
+					System.out.print(_currWorld[k][l] ? "1 " : "0 ");
+				}
+				System.out.println("");
+			}
+			
+			System.out.println("gen " + _generations);
+			
+			//print_board(_currWorld);
 			boolean[][] tmp = _currWorld;
 			_currWorld = _nextWorld;
 			_nextWorld = tmp;
@@ -57,9 +69,9 @@ public class DirtyGameOfLife implements GameOfLife {
 
 		_workerSem.acquire(workerNum);
 		
-		for (Worker worker : workers) {
+/*		for (Worker worker : workers) {
 			worker.join();
-		}
+		}*/
 
 		return new boolean[][][] { _nextWorld, _currWorld };
 	}
