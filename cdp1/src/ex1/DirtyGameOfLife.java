@@ -103,9 +103,16 @@ public class DirtyGameOfLife implements GameOfLife {
 						} else {
 							break;
 						}
-						processSection(section);
+
+					}
+					
+					processSection(section);
+					
+					
+					synchronized (DirtyGameOfLife.this) {
 						_worldSections.addLast(section);
 					}
+					
 					_workerSem.release(1);
 					_genSem.acquire(1);
 				}
