@@ -31,7 +31,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		print_board(initalField);
 
 		// split the world map to WorldSections
-		_worldSections = splitToSections(hSplit, vSplit, initalField);
+		_worldSections = splitToSections(hSplit, vSplit, initalField[0].length, initalField.length);
 
 		// backup _worldSections
 		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
@@ -69,24 +69,30 @@ public class DirtyGameOfLife implements GameOfLife {
 		return new boolean[][][] { _nextWorld, _currWorld };
 	}
 
-	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, boolean[][] initialField) {
-		int width = initialField[0].length / vSplit;
-		int height = initialField.length / hSplit;
-		Integer dbgBoard[][] = new Integer[vSplit * width][hSplit * height];
 
-		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
+	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, int boardWidth, int boardHeight) {
+		int width = (int)Math.ceil((double) boardWidth / vSplit);
+		int height = (int)Math.ceil((double) boardHeight / hSplit);
+
+		Integer dbgBoard[][] = new Integer[boardWidth][boardHeight];
+
+		LinkedList<WorldSection> sections = new LinkedList<>();
 		dbg("width: " + width + ", height: " + height + ", vSplit: " + vSplit + ", hSplit: " + hSplit);
 		for (int i = 0; i < hSplit; i++) {
+
+			int effectiveHeight = i + 1 < hSplit ? height : boardHeight - i*height;
 			for (int j = 0; j < vSplit; j++) {
 				WorldSection section = new WorldSection();
-				for (int l = 0; l < height; l++) {
-					for (int k = 0; k < width; k++) {
+
+				int effectiveWidth = j + 1 < vSplit ? width : boardWidth - j*width;
+				for (int l = 0; l < effectiveHeight; l++) {
+					for (int k = 0; k < effectiveWidth; k++) {
 						Cell cell = new Cell();
-						cell.x = i * height + l;
-						cell.y = j * width + k;
+						cell.y = i * height + l;
+						cell.x = j * width + k;
 						section.cells.add(cell);
 
-						dbgBoard[cell.x][cell.y] = sections.size();
+						dbgBoard[cell.y][cell.x] = sections.size();
 					}
 				}
 				sections.add(section);
@@ -98,11 +104,12 @@ public class DirtyGameOfLife implements GameOfLife {
 			for (Cell cell : section.cells) {
 				System.out.print("(" + cell.x + "," + cell.y + ") ");
 			}
-			System.out.println("]");
+			System.out.println("] " + section.cells.size() + " cells");
 		}
 
-		for (int x = 0; x < vSplit * width; x++) {
-			for (int y = 0; y < hSplit * height; y++) {
+
+		for (int x=0; x< boardWidth; x++) {
+			for (int y=0; y< boardHeight; y++) {
 
 				System.out.print(dbgBoard[x][y] + ", ");
 			}
