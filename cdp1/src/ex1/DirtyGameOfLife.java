@@ -19,7 +19,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		_generations = generations;
 		createWorld(initalField);
 
-		//print_board(initalField);
+		print_board(initalField);
 
 		// split the world map to WorldSections
 		_worldSections = splitToSections(hSplit, vSplit, initalField[0].length, initalField.length);
@@ -42,7 +42,7 @@ public class DirtyGameOfLife implements GameOfLife {
 			_workerSem.acquire(workerNum);
 			// switch _currWorld and _nextWorld
 
-			//print_board(_currWorld);
+			print_board(_currWorld);
 			boolean[][] tmp = _currWorld;
 			_currWorld = _nextWorld;
 			_nextWorld = tmp;
@@ -147,7 +147,6 @@ public class DirtyGameOfLife implements GameOfLife {
 		@Override
 		public void run() {
 			dbg("Started");
-			try {
 				while (_generations > 0) {
 					while (true) {
 						WorldSection section = null;
@@ -158,20 +157,23 @@ public class DirtyGameOfLife implements GameOfLife {
 								break;
 							}
 						}
-						processSection(section);
+						try {
+							processSection(section);
+						} catch (Exception e) {
+							e.printStackTrace();
+							System.exit(1);
+						}
 					}
 					_workerSem.release(1);
 					_genSem.acquire(1);
 				}
 				_workerSem.release(1);
-			} catch (Exception e) {
-				// shhhh... don't tell anyone!
-			}
 		}
 
 		private void processSection(WorldSection section) {
 			dbg("Processing " + section.cells);
 			for (Cell cell : section.cells) {
+				System.out.println(cell);
 				int numNeighbors = numNeighbors(cell.x, cell.y, _currWorld);
 				if (_currWorld[cell.x][cell.y]) { // alive
 					if (numNeighbors == 3 || numNeighbors == 2) {
@@ -219,7 +221,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 
 		void acquire(int permits) {
-			dbg("Entering acquire(" + permits + ")");
+			dbg("Entering acquire(" + permits + ") on " + this.hashCode());
 			synchronized (this) {
 				while (_permits < permits) {
 					vait(this);
@@ -230,12 +232,12 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 
 		void release(int permits) {
-			//dbg("Entering release(" + permits + ")");
+			dbg("Entering release(" + permits + ") on " + this.hashCode());
 			synchronized (this) {
 				_permits += permits;
 				notifyAll();
 			}
-			//dbg("Exiting");
+			dbg("Exiting");
 		}
 	}
 

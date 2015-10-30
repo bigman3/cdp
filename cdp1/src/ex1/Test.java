@@ -1,6 +1,5 @@
 package ex1;
 
-import javax.swing.plaf.SliderUI;
 
 public class Test {
 
