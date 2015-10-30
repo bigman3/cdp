@@ -85,8 +85,6 @@ public class DirtyGameOfLife implements GameOfLife {
 
 	private class Worker implements Runnable {
 
-		private WorldSection _section;
-
 		Worker() {
 			new Thread(this).start();
 		}
@@ -100,10 +98,7 @@ public class DirtyGameOfLife implements GameOfLife {
 					synchronized (DirtyGameOfLife.this) {
 						if (_worldSections.size() > 0) {
 							section = _worldSections.removeFirst();
-						} else {
-							break;
 						}
-
 					}
 					
 					processSection(section);
