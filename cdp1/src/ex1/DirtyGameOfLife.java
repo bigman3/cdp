@@ -164,7 +164,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		void acquire(int permits) {
 			dbg("Entering acquire(" + permits + ")");
 			synchronized (this) {
-				while (_permits == 0) {
+				while (_permits < permits ) {
 					vait(this);
 				}
 				_permits -= permits;
