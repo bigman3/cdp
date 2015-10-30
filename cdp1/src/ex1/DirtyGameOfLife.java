@@ -19,7 +19,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		_generations = generations;
 		createWorld(initalField);
 
-		print_board(initalField);
+//		print_board(initalField);
 
 		// split the world map to WorldSections
 		_worldSections = splitToSections(hSplit, vSplit, initalField[0].length, initalField.length);
@@ -42,7 +42,7 @@ public class DirtyGameOfLife implements GameOfLife {
 			_workerSem.acquire(workerNum);
 			// switch _currWorld and _nextWorld
 
-			print_board(_currWorld);
+//			print_board(_currWorld);
 			boolean[][] tmp = _currWorld;
 			_currWorld = _nextWorld;
 			_nextWorld = tmp;
@@ -80,50 +80,51 @@ public class DirtyGameOfLife implements GameOfLife {
 
 
 	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, int boardWidth, int boardHeight) {
-		int width = (int)Math.ceil((double) boardWidth / vSplit);
-		int height = (int)Math.ceil((double) boardHeight / hSplit);
+		int width = (int)Math.floor((double) boardWidth / hSplit);
+		int height = (int)Math.floor((double) boardHeight / vSplit);
 
-		//Integer dbgBoard[][] = new Integer[boardWidth][boardHeight];
+		Integer dbgBoard[][] = new Integer[boardWidth][boardHeight];
 
 		LinkedList<WorldSection> sections = new LinkedList<>();
 		dbg("width: " + width + ", height: " + height + ", vSplit: " + vSplit + ", hSplit: " + hSplit);
 		for (int i = 0; i < hSplit; i++) {
+			int effectiveWidth = i + 1 < hSplit ? width : boardWidth - i*width;
 
-			int effectiveHeight = i + 1 < hSplit ? height : boardHeight - i*height;
 			for (int j = 0; j < vSplit; j++) {
 				WorldSection section = new WorldSection();
 
-				int effectiveWidth = j + 1 < vSplit ? width : boardWidth - j*width;
-				for (int l = 0; l < effectiveHeight; l++) {
-					for (int k = 0; k < effectiveWidth; k++) {
+				int effectiveHeight = j + 1 < vSplit ? height : boardHeight - j*height;
+				for (int l = 0; l < effectiveWidth; l++) {
+					for (int k = 0; k < effectiveHeight; k++) {
 						Cell cell = new Cell();
-						cell.y = i * height + l;
-						cell.x = j * width + k;
+						cell.x = j * height + k;
+						cell.y = i * width + l;
 						section.cells.add(cell);
 
-					//dbgBoard[cell.y][cell.x] = sections.size();
+//					dbgBoard[cell.x][cell.y] = sections.size();
 					}
 				}
-				sections.add(section);
+				if (!section.cells.isEmpty())
+					sections.add(section);
 			}
 		}
+//
+//		for (WorldSection section : sections) {
+//			System.out.print("[");
+//			for (Cell cell : section.cells) {
+//				System.out.print("(" + cell.x + "," + cell.y + ") ");
+//			}
+//			System.out.println("] " + section.cells.size() + " cells");
+//		}
 
-		for (WorldSection section : sections) {
-			System.out.print("[");
-			for (Cell cell : section.cells) {
-				System.out.print("(" + cell.x + "," + cell.y + ") ");
-			}
-			System.out.println("] " + section.cells.size() + " cells");
-		}
 
-
-/*		for (int x=0; x< boardWidth; x++) {
-			for (int y=0; y< boardHeight; y++) {
-
-				System.out.print(dbgBoard[x][y] + ", ");
-			}
-			System.out.println();
-		}*/
+//		for (int x=0; x < boardHeight; x++) {
+//			for (int y=0; y < boardWidth; y++) {
+//
+//				System.out.print(dbgBoard[y][x] + ", ");
+//			}
+//			System.out.println();
+//		}
 
 		return sections;
 	}
@@ -173,7 +174,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		private void processSection(WorldSection section) {
 			dbg("Processing " + section.cells);
 			for (Cell cell : section.cells) {
-				System.out.println(cell);
+				dbg(cell.toString());
 				int numNeighbors = numNeighbors(cell.x, cell.y, _currWorld);
 				if (_currWorld[cell.x][cell.y]) { // alive
 					if (numNeighbors == 3 || numNeighbors == 2) {
@@ -199,12 +200,13 @@ public class DirtyGameOfLife implements GameOfLife {
 	@SuppressWarnings("serial")
 	private static class Cell extends Point {
 		public String toString() {
-			return "(" + y + "," + x + ")";
+			return "(" + x + "," + y + ")";
 		}
 	}
 
 	private static int numNeighbors(int x, int y, boolean[][] field) {
 		int counter = (field[x][y] ? -1 : 0);
+
 		for (int i = (x - 1 + field.length); i < (x + 2 + field.length); ++i) {
 			for (int j = (y - 1 + field[0].length); j < (y + 2 + field[0].length); j++) {
 				counter += (field[i % field.length][j % field[0].length] ? 1 : 0);

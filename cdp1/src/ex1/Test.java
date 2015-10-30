@@ -4,7 +4,6 @@ package ex1;
 public class Test {
 
 	public static void main(String[] args) {
-
 		for (int row = 4; row < 100; row++) {
 			for (int col = 1; col < 100; col++) {
 				boolean[][] field = new boolean[row][col];
@@ -45,12 +44,12 @@ public class Test {
 						boolean success = (compareArrays(resultParallel[0], resultSerial[0])
 								&& (compareArrays(resultParallel[1], resultSerial[1])));
 						if (!success) {
-							System.err.println("Failed, hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
+							System.err.println("**SUCESSS! Failed, hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
 									+ ", cols: " + col);
 							return;
 						} else {
 							if (parallelTime != 0 && serialTime != 0) {
-								System.out.println("Speedup: " + (serialTime / parallelTime) + " hSplit: " + hSplit
+								System.out.println("**SUCESSS! speedup: " + (serialTime / parallelTime) + " hSplit: " + hSplit
 										+ ", vSplit: " + vSplit + ", rows: " + row + ", cols: " + col);
 							}
 							int threadNum = Thread.getAllStackTraces().size();
