@@ -30,11 +30,8 @@ public class DirtyGameOfLife implements GameOfLife {
 		
 		print_board(initalField);
 
-		int width = initalField[0].length / vSplit;
-		int height = initalField.length / hSplit;
-
 		// split the world map to WorldSections
-		_worldSections = splitToSections(hSplit, vSplit, width, height);
+		_worldSections = splitToSections(hSplit, vSplit,initalField);
 
 		int workerNum = _worldSections.size();
 
@@ -63,7 +60,9 @@ public class DirtyGameOfLife implements GameOfLife {
 		return new boolean[][][] { _nextWorld, _currWorld };
 	}
 
-	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, int width, int height) {
+	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit,boolean[][] initialField) {
+		int width = initialField[0].length / vSplit;
+		int height = initialField.length / hSplit;
 		Integer dbgBoard[][] = new Integer[vSplit*width][hSplit*height];
 
 		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
@@ -84,7 +83,6 @@ public class DirtyGameOfLife implements GameOfLife {
 				sections.add(section);
 			}
 		}
-
 
 		for (WorldSection section : sections) {
 			System.out.print("[");
