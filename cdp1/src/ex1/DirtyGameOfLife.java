@@ -57,6 +57,8 @@ public class DirtyGameOfLife implements GameOfLife {
 	}
 
 	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, int width, int height) {
+		Integer dbgBoard[][] = new Integer[vSplit*width][hSplit*height];
+
 		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
 		dbg("width: " + width + ", height: " + height + ", vSplit: " + vSplit + ", hSplit: " + hSplit);
 		for (int i = 0; i < hSplit; i++) {
@@ -68,11 +70,15 @@ public class DirtyGameOfLife implements GameOfLife {
 						cell.x = i * height + l;
 						cell.y = j * width + k;
 						section.cells.add(cell);
+
+						dbgBoard[cell.x][cell.y] = sections.size();
 					}
 				}
 				sections.add(section);
 			}
 		}
+
+
 		for (WorldSection section : sections) {
 			System.out.print("[");
 			for (Cell cell : section.cells) {
@@ -80,6 +86,17 @@ public class DirtyGameOfLife implements GameOfLife {
 			}
 			System.out.println("]");
 		}
+
+
+		for (int x=0; x<vSplit*width ; x++) {
+			for (int y=0; y<hSplit*height; y++) {
+
+				System.out.print(dbgBoard[x][y] + ", ");
+			}
+			System.out.println();
+		}
+
+
 		return sections;
 	}
 
