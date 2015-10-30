@@ -17,33 +17,24 @@ public class DirtyGameOfLife implements GameOfLife {
 	@Override
 	public boolean[][][] invoke(boolean[][] initalField, int hSplit, int vSplit, int generations) {
 		_generations = generations;
-		_nextWorld = new boolean[initalField.length][initalField[0].length];
-		_currWorld = new boolean[initalField.length][initalField[0].length];
-		for (int i = 0; i < initalField.length; i++) {
-			_currWorld[i] = new boolean[initalField[i].length];
-			_nextWorld[i] = new boolean[initalField[i].length];
-		}
+		createWorld(initalField);
 
-		for (int i = 0; i < initalField.length; i++) {
-			System.arraycopy(initalField[i], 0, _currWorld[i], 0, initalField[i].length);
-		}
-
-		print_board(initalField);
+		//print_board(initalField);
 
 		// split the world map to WorldSections
 		_worldSections = splitToSections(hSplit, vSplit, initalField[0].length, initalField.length);
 
 		// backup _worldSections
 		LinkedList<WorldSection> sections = new LinkedList<WorldSection>();
-		for (WorldSection section : _worldSections) {
-			sections.add(section);
-		}
+		sections.addAll(_worldSections);
 
 		int workerNum = _worldSections.size();
 
+		Worker[] workers = new Worker[workerNum];
+		
 		// launch all threads
 		for (int i = 0; i < workerNum; i++) {
-			new Worker();
+			workers[i] = new Worker();
 		}
 
 		while (_generations > 0) {
@@ -51,7 +42,7 @@ public class DirtyGameOfLife implements GameOfLife {
 			_workerSem.acquire(workerNum);
 			// switch _currWorld and _nextWorld
 
-			print_board(_currWorld);
+			//print_board(_currWorld);
 			boolean[][] tmp = _currWorld;
 			_currWorld = _nextWorld;
 			_nextWorld = tmp;
@@ -65,8 +56,26 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 
 		_workerSem.acquire(workerNum);
+		
+		for (Worker worker : workers) {
+			worker.join();
+		}
 
 		return new boolean[][][] { _nextWorld, _currWorld };
+	}
+
+
+	private void createWorld(boolean[][] initalField) {
+		_nextWorld = new boolean[initalField.length][initalField[0].length];
+		_currWorld = new boolean[initalField.length][initalField[0].length];
+		for (int i = 0; i < initalField.length; i++) {
+			_currWorld[i] = new boolean[initalField[i].length];
+			_nextWorld[i] = new boolean[initalField[i].length];
+		}
+
+		for (int i = 0; i < initalField.length; i++) {
+			System.arraycopy(initalField[i], 0, _currWorld[i], 0, initalField[i].length);
+		}
 	}
 
 
@@ -74,7 +83,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		int width = (int)Math.ceil((double) boardWidth / vSplit);
 		int height = (int)Math.ceil((double) boardHeight / hSplit);
 
-		Integer dbgBoard[][] = new Integer[boardWidth][boardHeight];
+		//Integer dbgBoard[][] = new Integer[boardWidth][boardHeight];
 
 		LinkedList<WorldSection> sections = new LinkedList<>();
 		dbg("width: " + width + ", height: " + height + ", vSplit: " + vSplit + ", hSplit: " + hSplit);
@@ -92,7 +101,7 @@ public class DirtyGameOfLife implements GameOfLife {
 						cell.x = j * width + k;
 						section.cells.add(cell);
 
-						dbgBoard[cell.y][cell.x] = sections.size();
+					//dbgBoard[cell.y][cell.x] = sections.size();
 					}
 				}
 				sections.add(section);
@@ -108,23 +117,33 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 
 
-		for (int x=0; x< boardWidth; x++) {
+/*		for (int x=0; x< boardWidth; x++) {
 			for (int y=0; y< boardHeight; y++) {
 
 				System.out.print(dbgBoard[x][y] + ", ");
 			}
 			System.out.println();
-		}
+		}*/
 
 		return sections;
 	}
 
 	private class Worker implements Runnable {
 
+		private Thread _t;
+		
 		Worker() {
-			new Thread(this).start();
+			_t = new Thread(this);
+			_t.start();
 		}
 
+		private void join() {
+			try {
+				_t.join();
+			} catch (InterruptedException e) {
+			}
+		}
+		
 		@Override
 		public void run() {
 			dbg("Started");
@@ -146,7 +165,7 @@ public class DirtyGameOfLife implements GameOfLife {
 				}
 				_workerSem.release(1);
 			} catch (Exception e) {
-				e.printStackTrace();
+				// shhhh... don't tell anyone!
 			}
 		}
 
@@ -200,14 +219,14 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 
 		void acquire(int permits) {
-			//dbg("Entering acquire(" + permits + ")");
+			dbg("Entering acquire(" + permits + ")");
 			synchronized (this) {
 				while (_permits < permits) {
 					vait(this);
 				}
 				_permits -= permits;
 			}
-			//dbg("Exiting");
+			dbg("Exiting");
 		}
 
 		void release(int permits) {
@@ -234,6 +253,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		System.out.println(Thread.currentThread().getId() + ": " + msg);
 	}
 
+	@SuppressWarnings("unused")
 	private static void print_board(boolean w_gameBoard[][]) {
 		System.out.print("  ");
 		for (int i = 0; i < w_gameBoard.length; i++) {
