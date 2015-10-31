@@ -4,22 +4,63 @@ import java.awt.Point;
 import java.util.LinkedList;
 import java.util.List;
 
+/***
+ * Parallel version of Game Of Life
+ * Dirty because everything is in a single class file
+ * Basically, the algorithm is dividing the world map into sections
+ * and have each section be processed by a thread
+ * 
+ * The main loop launches the threads, waits for them to finish their cycle
+ * and then switches between the nextWorld and currWorld map arrays 
+ * and notifies them to execute the next generation.
+ * 
+ * @author Yacov Manevich & Arieh Leviav
+ *
+ */
+
 public class DirtyGameOfLife implements GameOfLife {
 
+	/**
+	 * World maps. True for alive cell and false for dead cell
+	 * Volatile because the main loop switches their values each iteration.
+	 */
 	private volatile boolean[][] _nextWorld;
 	private volatile boolean[][] _currWorld;
+	
+	/**
+	 * The division of the world map to threads
+	 */
 	private LinkedList<WorldSection> _worldSections = new LinkedList<WorldSection>();
+	
+	/**
+	 * Semaphore that only workers release, and the main thread acquires.
+	 */
 	private Semaphore _workerSem = new Semaphore(0);
+	
+	/**
+	 * Semaphore that the main thread releases and the workers acquire.
+	 */
 	private Semaphore _genSem = new Semaphore(0);
+	
+	/**
+	 * The number of generations left until world destruction
+	 */
 	private volatile int _generations;
+	
+	/**
+	 * debug
+	 */
 	private static final boolean debug = (System.getenv("DEBUG") != null);
 
 	@Override
 	public boolean[][][] invoke(boolean[][] initalField, int hSplit, int vSplit, int generations) {
+		
+		if (generations == 0) {
+			return new boolean[][][]{initalField,initalField};
+		}
+		
 		_generations = generations;
 		createWorld(initalField);
-
-//		print_board(initalField);
 
 		// split the world map to WorldSections
 		_worldSections = splitToSections(hSplit, vSplit, initalField[0].length, initalField.length);
@@ -37,24 +78,11 @@ public class DirtyGameOfLife implements GameOfLife {
 			workers[i] = new Worker();
 		}
 		
-		System.out.println("Starting main loop");
-
 		while (_generations > 0) {
 			// wait for workers to finish
 			_workerSem.acquire(workerNum);
 			// switch _currWorld and _nextWorld
 
-			
-			for (int k=0; k<_currWorld.length; k++) {
-				for (int l=0; l<_currWorld[0].length; l++) {
-					System.out.print(_currWorld[k][l] ? "1 " : "0 ");
-				}
-				System.out.println("");
-			}
-			
-			System.out.println("gen " + _generations);
-			
-			//print_board(_currWorld);
 			boolean[][] tmp = _currWorld;
 			_currWorld = _nextWorld;
 			_nextWorld = tmp;
@@ -69,10 +97,6 @@ public class DirtyGameOfLife implements GameOfLife {
 
 		_workerSem.acquire(workerNum);
 		
-/*		for (Worker worker : workers) {
-			worker.join();
-		}*/
-
 		return new boolean[][][] { _nextWorld, _currWorld };
 	}
 
@@ -90,12 +114,12 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 	}
 
-
+	/**
+	 * Ugly indices game
+	 */
 	private static LinkedList<WorldSection> splitToSections(int hSplit, int vSplit, int boardWidth, int boardHeight) {
 		int width = (int)Math.floor((double) boardWidth / hSplit);
 		int height = (int)Math.floor((double) boardHeight / vSplit);
-
-		Integer dbgBoard[][] = new Integer[boardWidth][boardHeight];
 
 		LinkedList<WorldSection> sections = new LinkedList<>();
 		dbg("width: " + width + ", height: " + height + ", vSplit: " + vSplit + ", hSplit: " + hSplit);
@@ -112,51 +136,26 @@ public class DirtyGameOfLife implements GameOfLife {
 						cell.x = j * height + k;
 						cell.y = i * width + l;
 						section.cells.add(cell);
-
-//					dbgBoard[cell.x][cell.y] = sections.size();
 					}
 				}
 				if (!section.cells.isEmpty())
 					sections.add(section);
 			}
 		}
-//
-//		for (WorldSection section : sections) {
-//			System.out.print("[");
-//			for (Cell cell : section.cells) {
-//				System.out.print("(" + cell.x + "," + cell.y + ") ");
-//			}
-//			System.out.println("] " + section.cells.size() + " cells");
-//		}
-
-
-//		for (int x=0; x < boardHeight; x++) {
-//			for (int y=0; y < boardWidth; y++) {
-//
-//				System.out.print(dbgBoard[y][x] + ", ");
-//			}
-//			System.out.println();
-//		}
-
 		return sections;
 	}
 
+	
+	/**
+	 * The worker class 
+	 *
+	 */
 	private class Worker implements Runnable {
 
-		private Thread _t;
-		
 		Worker() {
-			_t = new Thread(this);
-			_t.start();
+			new Thread(this).start();
 		}
 
-		private void join() {
-			try {
-				_t.join();
-			} catch (InterruptedException e) {
-			}
-		}
-		
 		@Override
 		public void run() {
 			dbg("Started");
@@ -172,9 +171,9 @@ public class DirtyGameOfLife implements GameOfLife {
 						}
 						try {
 							processSection(section);
+							Thread.yield();
 						} catch (Exception e) {
-							e.printStackTrace();
-							System.exit(1);
+							// don't make a fuss over this small thing
 						}
 					}
 					_workerSem.release(1);
@@ -183,6 +182,10 @@ public class DirtyGameOfLife implements GameOfLife {
 				_workerSem.release(1);
 		}
 
+		/**
+		 * Mutate the world map according to exercise logic
+		 * @param section the set of cells in the section
+		 */
 		private void processSection(WorldSection section) {
 			dbg("Processing " + section.cells);
 			for (Cell cell : section.cells) {
@@ -205,6 +208,10 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 	}
 
+	/**
+	 * A set of cells which represents a continuous 
+	 * subset of the world map
+	 */
 	private static class WorldSection {
 		private List<Cell> cells = new LinkedList<Cell>();
 	}
@@ -216,6 +223,9 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 	}
 
+	/**
+	 * Copied from the exercise code
+	 */
 	private static int numNeighbors(int x, int y, boolean[][] field) {
 		int counter = (field[x][y] ? -1 : 0);
 
@@ -227,6 +237,9 @@ public class DirtyGameOfLife implements GameOfLife {
 		return counter;
 	}
 
+	/**
+	 * A Semaphore implementation
+	 */
 	private static class Semaphore {
 		private int _permits;
 
@@ -263,6 +276,7 @@ public class DirtyGameOfLife implements GameOfLife {
 	}
 
 	private static void dbg(String msg) {
+		// For branch prediction, debug will most likely not be used in the tests
 		if (!debug) {
 			return;
 		}

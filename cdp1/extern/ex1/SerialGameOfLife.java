@@ -24,6 +24,7 @@ public class SerialGameOfLife implements GameOfLife {
 		boolean[][] result=new boolean[initalField.length][];
 		
 		for (int g=0;g<generations;g++){
+			
 			for (int i=0;i<initalField.length;i++){
 				if (result[i]==null){
 					// using first time -> copy the array
@@ -38,6 +39,7 @@ public class SerialGameOfLife implements GameOfLife {
 					}
 				}
 			}
+			
 			boolean[][] tmp;
 			tmp=input;
 			input=result;
