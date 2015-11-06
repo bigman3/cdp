@@ -4,9 +4,9 @@ package ex1;
 public class Test {
 
 	public static void main(String[] args) {
-		for (int row = 1; row < 100; row++) {
+		for (int row = 10; row < 1000; row++) {
 			System.out.println(row);
-			for (int col = 1; col < 100; col++) {
+			for (int col = 10; col < 1000; col++) {
 				boolean[][] field = new boolean[row][col];
 				for (int i = 1; i < row; i++) {
 					field[i] = new boolean[col];
@@ -14,21 +14,21 @@ public class Test {
 						field[i][j] = (Math.random() > 0.25);
 					}
 				}
-				int nGenerations = (int) (Math.random() * 10);
-				for (int hSplit = 1; hSplit < 10; hSplit++) {
-					for (int vSplit = 1; vSplit < 10; vSplit++) {
+				int nGenerations = (int) (Math.random() * 5);
+				for (int hSplit = 1; hSplit < 5; hSplit++) {
+					for (int vSplit = 1; vSplit < 5; vSplit++) {
 						GameOfLife sGol = new SerialGameOfLife();
 						GameOfLife pGol = new ParallelGameOfLife();
-						long start = System.currentTimeMillis();
+						long start = System.nanoTime();
 						boolean[][][] resultSerial = sGol.invoke(field, hSplit, vSplit, nGenerations);
-						long end = System.currentTimeMillis();
+						long end = System.nanoTime();
 						long serialTime = end - start;
 						boolean[][][] resultParallel;
 
-/*						System.out.println("Testing hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
-								+ ", cols: " + col);*/
+						System.out.print("Testing hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
+								+ ", cols: " + col+  " ");
 
-						start = System.currentTimeMillis();
+						start = System.nanoTime();
 
 						try {
 							resultParallel = pGol.invoke(field, hSplit, vSplit, nGenerations);
@@ -39,9 +39,19 @@ public class Test {
 							return;
 						}
 
-						end = System.currentTimeMillis();
+						end = System.nanoTime();
 						long parallelTime = end - start;
 
+						long diff = serialTime - parallelTime;
+						if (diff <= 0) {
+							System.err.println("NoSpeedup");
+						} else {
+							if (serialTime != 0 && parallelTime != 0) {
+								double speedUp = (double)serialTime / (double)parallelTime;
+								System.out.println("Speedup: " + speedUp);
+							}
+						}
+						
 						boolean success = (compareArrays(resultParallel[0], resultSerial[0])
 								&& (compareArrays(resultParallel[1], resultSerial[1])));
 						if (!success) {
@@ -59,7 +69,7 @@ public class Test {
 								}
 								System.out.println();
 							}
-							
+							System.exit(1);
 /*							System.err.println("**SUCESSS! Failed, hSplit: " + hSplit + ", vSplit: " + vSplit + ", rows: " + row
 									+ ", cols: " + col);*/
 							return;
