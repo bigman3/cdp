@@ -9,11 +9,11 @@ import java.util.List;
  * Dirty because everything is in a single class file
  * Basically, the algorithm is dividing the world map into sections
  * and have each section be processed by a thread
- * 
+ *
  * The main loop launches the threads, waits for them to finish their cycle
- * and then switches between the nextWorld and currWorld map arrays 
+ * and then switches between the nextWorld and currWorld map arrays
  * and notifies them to execute the next generation.
- * 
+ *
  * @author Yacov Manevich & Arieh Leviav
  *
  */
@@ -26,27 +26,27 @@ public class DirtyGameOfLife implements GameOfLife {
 	 */
 	private volatile boolean[][] _nextWorld;
 	private volatile boolean[][] _currWorld;
-	
+
 	/**
 	 * The division of the world map to threads
 	 */
 	private LinkedList<WorldSection> _worldSections = new LinkedList<WorldSection>();
-	
+
 	/**
 	 * Semaphore that only workers release, and the main thread acquires.
 	 */
 	private Semaphore _workerSem = new Semaphore(0);
-	
+
 	/**
 	 * Semaphore that the main thread releases and the workers acquire.
 	 */
 	private Semaphore _genSem = new Semaphore(0);
-	
+
 	/**
 	 * The number of generations left until world destruction
 	 */
 	private volatile int _generations;
-	
+
 	/**
 	 * debug
 	 */
@@ -54,11 +54,11 @@ public class DirtyGameOfLife implements GameOfLife {
 
 	@Override
 	public boolean[][][] invoke(boolean[][] initalField, int hSplit, int vSplit, int generations) {
-		
+
 		if (generations == 0) {
 			return new boolean[][][]{initalField,initalField};
 		}
-		
+
 		_generations = generations;
 		createWorld(initalField);
 
@@ -72,12 +72,12 @@ public class DirtyGameOfLife implements GameOfLife {
 		int workerNum = _worldSections.size();
 
 		Worker[] workers = new Worker[workerNum];
-		
+
 		// launch all threads
 		for (int i = 0; i < workerNum; i++) {
 			workers[i] = new Worker();
 		}
-		
+
 		while (_generations > 0) {
 			// wait for workers to finish
 			_workerSem.acquire(workerNum);
@@ -96,7 +96,7 @@ public class DirtyGameOfLife implements GameOfLife {
 		}
 
 		_workerSem.acquire(workerNum);
-		
+
 		return new boolean[][][] { _nextWorld, _currWorld };
 	}
 
@@ -132,22 +132,45 @@ public class DirtyGameOfLife implements GameOfLife {
 				int effectiveHeight = j + 1 < vSplit ? height : boardHeight - j*height;
 				for (int l = 0; l < effectiveWidth; l++) {
 					for (int k = 0; k < effectiveHeight; k++) {
-						Cell cell = new Cell();
-						cell.x = j * height + k;
-						cell.y = i * width + l;
-						section.cells.add(cell);
+
+						if (k == 0 && l ==0) {
+							Cell cell = new Cell();
+							cell.x = j * height + k;
+							cell.y = i * width + l;
+							section.setLeftTop(cell);
+						}
+//						else if (k == 0 && l+1 == effectiveWidth) {
+//							Cell cell = new Cell();
+//							cell.x = j * height + k;
+//							cell.y = i * width + l;
+//							section.setRightTop(cell);
+//
+//						}
+//						else if (k+1 == effectiveHeight && l == 0) {
+//							Cell cell = new Cell();
+//							cell.x = j * height + k;
+//							cell.y = i * width + l;
+//							section.setRightBottom(cell);
+//						}
+						else if (k+1 == effectiveHeight && l+1 == effectiveWidth) {
+							Cell cell = new Cell();
+							cell.x = j * height + k;
+							cell.y = i * width + l;
+							section.setRightBottom(cell);
+						}
 					}
 				}
-				if (!section.cells.isEmpty())
+//				if (!section.cells.isEmpty())
 					sections.add(section);
 			}
 		}
+
 		return sections;
 	}
 
-	
+
 	/**
-	 * The worker class 
+	 * The worker class
 	 *
 	 */
 	private class Worker implements Runnable {
@@ -187,33 +210,51 @@ public class DirtyGameOfLife implements GameOfLife {
 		 * @param section the set of cells in the section
 		 */
 		private void processSection(WorldSection section) {
-			dbg("Processing " + section.cells);
-			for (Cell cell : section.cells) {
-				dbg(cell.toString());
-				int numNeighbors = numNeighbors(cell.x, cell.y, _currWorld);
-				if (_currWorld[cell.x][cell.y]) { // alive
-					if (numNeighbors == 3 || numNeighbors == 2) {
-						_nextWorld[cell.x][cell.y] = true;
-					} else {
-						_nextWorld[cell.x][cell.y] = false;
-					}
-				} else { // dead
-					if (numNeighbors == 3) {
-						_nextWorld[cell.x][cell.y] = true;
-					} else {
-						_nextWorld[cell.x][cell.y] = false;
+//			dbg("Processing " + section.cells);
+//			for (Cell cell : section.cells) {
+			for (int x = section.getLeftTop().x; x <= section.getRightBottom().x; x++) {
+				for (int y = section.getLeftTop().y; y <= section.getRightBottom().y; y++) {
+//					dbg(cell.toString());
+					int numNeighbors = numNeighbors(x, y, _currWorld);
+					if (_currWorld[x][y]) { // alive
+						if (numNeighbors == 3 || numNeighbors == 2) {
+							_nextWorld[x][y] = true;
+						} else {
+							_nextWorld[x][y] = false;
+						}
+					} else { // dead
+						if (numNeighbors == 3) {
+							_nextWorld[x][y] = true;
+						} else {
+							_nextWorld[x][y] = false;
+						}
 					}
 				}
 			}
+//			}
 		}
 	}
 
 	/**
-	 * A set of cells which represents a continuous 
+	 * A set of cells which represents a continuous
 	 * subset of the world map
 	 */
 	private static class WorldSection {
-		private List<Cell> cells = new LinkedList<Cell>();
+		//		private List<Cell> cells = new LinkedList<Cell>();
+		private Cell leftTop;
+//		private Cell rightTop;
+//		private Cell leftBottom;
+		private Cell rightBottom;
+
+		public void setLeftTop(Cell leftTop) { this.leftTop = leftTop; }
+//		public void setRightTop(Cell rightTop) { this.rightTop = rightTop; }
+//		public void setLeftBottom(Cell leftBottom) { this.leftBottom = leftBottom; }
+		public void setRightBottom(Cell rightBottom) { this.rightBottom = rightBottom; }
+
+		public Cell getLeftTop() { return leftTop; }
+//		public Cell getRightTop() { return rightTop; }
+//		public Cell getLeftBottom() { return leftBottom; }
+		public Cell getRightBottom() { return rightBottom; }
 	}
 
 	@SuppressWarnings("serial")
